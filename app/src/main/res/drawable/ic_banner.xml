@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- 圆角深绿护眼底色 -->
+    <path
+        android:fillColor="#114B36"
+        android:pathData="M24,0 L96,0 C109.2,0 120,10.8 120,24 L120,96 C120,109.2 109.2,120 96,120 L24,120 C10.8,120 0,109.2 0,96 L0,24 C0,10.8 10.8,0 24,0 Z" />
+    <!-- 电视外框 -->
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M24,30 L96,30 C100.4,30 104,33.6 104,38 L104,78 C104,82.4 100.4,86 96,86 L68,86 L68,94 L80,94 L80,100 L40,100 L40,94 L52,94 L52,86 L24,86 C19.6,86 16,82.4 16,78 L16,38 C16,33.6 19.6,30 24,30 Z M24,38 L24,78 L96,78 L96,38 L24,38 Z" />
+    <!-- 时钟指针 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M57,44 L63,44 L63,57 L74,63 L71,68 L57,60 Z" />
+</vector>

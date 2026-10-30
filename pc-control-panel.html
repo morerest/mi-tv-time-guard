@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电视时长守护</title>
+<style>
+:root {
+  --bg: #f5f5f7;
+  --card: #ffffff;
+  --border: #e5e5ea;
+  --divider: #f0f0f2;
+  --text-main: #1d1d1f;
+  --text-sub: #6e6e73;
+  --text-muted: #86868b;
+  --primary: #18181b;
+  --primary-hover: #27272a;
+  --surface-muted: #f4f4f5;
+  --green: #16a34a;
+  --danger: #dc2626;
+  --radius-card: 14px;
+  --radius-ctrl: 8px;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  background: var(--bg);
+  color: var(--text-main);
+  padding: 36px 20px 60px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* 顶部标题栏 */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.header-left h1 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-top: 3px;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  display: inline-block;
+}
+.dot.offline { background: #d97706; }
+.dot.locked { background: var(--danger); }
+
+/* 卡片通用 */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.card-desc {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* 核心数字区 */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+  padding: 18px 0;
+  margin-bottom: 16px;
+}
+.metric-item {
+  padding-right: 16px;
+}
+.metric-item + .metric-item {
+  padding-left: 20px;
+  border-left: 1px solid var(--divider);
+}
+.metric-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.metric-val {
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+}
+.metric-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* 极细进度条 */
+.progress-track {
+  height: 4px;
+  background: var(--surface-muted);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+/* 按钮体系（克制单色） */
+.btn-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-main);
+  padding: 7px 13px;
+  border-radius: var(--radius-ctrl);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.btn:hover {
+  background: var(--surface-muted);
+}
+.btn:active {
+  transform: translateY(0.5px);
+}
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+.btn-danger-outline {
+  color: var(--danger);
+  border-color: #fecaca;
+}
+.btn-danger-outline:hover {
+  background: #fef2f2;
+}
+
+/* 设置列表行（macOS Settings 风格） */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 0;
+  border-top: 1px solid var(--divider);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.setting-row:first-of-type {
+  border-top: none;
+  padding-top: 4px;
+}
+.setting-row:last-of-type {
+  padding-bottom: 4px;
+}
+.setting-info {
+  flex: 1;
+  min-width: 200px;
+}
+.setting-name {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+.setting-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.setting-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 星期选择胶囊 */
+.days-seg {
+  display: inline-flex;
+  background: var(--surface-muted);
+  padding: 3px;
+  border-radius: 9px;
+  gap: 2px;
+}
+.day-item {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-sub);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s;
+}
+.day-item.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* 分段单选器 (Segmented Control) */
+.seg-ctrl {
+  display: inline-flex;
+  background: var(--surface-muted);
+  padding: 3px;
+  border-radius: 9px;
+}
+.seg-opt {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-sub);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s;
+}
+.seg-opt.active {
+  background: var(--card);
+  color: var(--text-main);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* 输入框 */
+.input-time, .input-num, .input-text {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-main);
+  border-radius: var(--radius-ctrl);
+  padding: 6px 10px;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.input-time:focus, .input-num:focus, .input-text:focus {
+  border-color: var(--primary);
+}
+.input-num {
+  width: 68px;
+  text-align: center;
+  font-weight: 600;
+}
+.input-text {
+  width: 280px;
+}
+@media (max-width: 600px) {
+  .metrics { grid-template-columns: 1fr; gap: 12px; }
+  .metric-item + .metric-item { padding-left: 0; border-left: none; border-top: 1px solid var(--divider); padding-top: 12px; }
+  .input-text { width: 100%; }
+}
+
+.preset-tag {
+  font-size: 12px;
+  color: var(--text-sub);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--surface-muted);
+  cursor: pointer;
+}
+.preset-tag:hover {
+  color: var(--text-main);
+  background: #e4e4e7;
+}
+
+/* 底部极简栏 */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 4px 0;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--text-sub);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.link-btn:hover { color: var(--text-main); }
+.link-btn.danger { color: var(--danger); }
+
+.ip-inline {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  width: 135px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.ip-inline:focus {
+  border-color: var(--border);
+  background: #fff;
+  color: var(--text-main);
+  outline: none;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--primary);
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 999;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- 顶部标题与状态 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>小米电视时长守护</h1>
+      <div class="status-line">
+        <span id="statusDot" class="dot"></span>
+        <span id="sceneText">正在同步电视状态...</span>
+      </div>
+    </div>
+    <div>
+      <button id="btnAdultTonight" class="btn btn-primary" onclick="doAction('toggle_adult_tonight')">
+        我在看电视（今晚免限制）
+      </button>
+    </div>
+  </div>
+
+  <!-- 卡片 1：今日状态与快捷控制 -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title" id="modeHeadline">今日儿童观看额度</div>
+        <div class="card-desc" id="modeSubline">仅在设定的儿童管控时段（默认周一至周五 17:00 后）亮屏时扣减</div>
+      </div>
+      <span id="tvScreenState" style="font-size:12px;color:var(--text-muted);">电视屏幕检测中</span>
+    </div>
+
+    <div class="metrics">
+      <div class="metric-item">
+        <div class="metric-label">今日剩余可用</div>
+        <div class="metric-val" id="valRemain">30:00</div>
+        <div class="metric-sub" id="subRemain">到点自动静音并锁屏</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label">今日已观看</div>
+        <div class="metric-val" id="valUsed">0分00秒</div>
+        <div class="metric-sub">息屏待机时不累计</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label">今日允许总额</div>
+        <div class="metric-val" id="valTotal">30 分钟</div>
+        <div class="metric-sub" id="subTotal">基础额度 30 分钟</div>
+      </div>
+    </div>
+
+    <div class="progress-track">
+      <div id="progFill" class="progress-fill"></div>
+    </div>
+
+    <div class="btn-bar">
+      <div class="btn-group">
+        <button class="btn" onclick="doAction('add_time',{minutes:15})">+15 分钟</button>
+        <button class="btn" onclick="doAction('add_time',{minutes:30})">+30 分钟</button>
+        <button class="btn" onclick="doAction('add_time',{minutes:-10})">-10 分钟</button>
+        <button class="btn" onclick="doAction('reset_today')">重置今日已看</button>
+      </div>
+      <button id="btnLockNow" class="btn btn-danger-outline" onclick="toggleForceLock()">
+        立即锁屏
+      </button>
+    </div>
+  </div>
+
+  <!-- 卡片 2：规则配置 -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="card-title">管控规则设置</div>
+        <div class="card-desc">默认周一至周五 17:00 后生效，其余时间不影响大人使用电视</div>
+      </div>
+      <button id="btnSaveConfig" class="btn btn-primary" onclick="saveConfig()">
+        保存更改
+      </button>
+    </div>
+
+    <!-- 1. 生效星期 -->
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">生效星期</div>
+        <div class="setting-hint">未勾选的日期全天不限制（可通过右侧点选）</div>
+      </div>
+      <div class="setting-ctrl">
+        <div class="days-seg" id="daysRow">
+          <div class="day-item active" data-day="1" onclick="toggleDay(1)">一</div>
+          <div class="day-item active" data-day="2" onclick="toggleDay(2)">二</div>
+          <div class="day-item active" data-day="3" onclick="toggleDay(3)">三</div>
+          <div class="day-item active" data-day="4" onclick="toggleDay(4)">四</div>
+          <div class="day-item active" data-day="5" onclick="toggleDay(5)">五</div>
+          <div class="day-item" data-day="6" onclick="toggleDay(6)">六</div>
+          <div class="day-item" data-day="7" onclick="toggleDay(7)">日</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 每日生效时间段 -->
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">儿童管控生效时段</div>
+        <div class="setting-hint">从几点开始启动儿童时长统计与限制</div>
+      </div>
+      <div class="setting-ctrl">
+        <input type="time" id="cfgStart" class="input-time" value="17:00">
+        <span style="color:var(--text-muted);font-size:13px;">至</span>
+        <input type="time" id="cfgEnd" class="input-time" value="22:30">
+      </div>
+    </div>
+
+    <!-- 3. 非生效时段模式 -->
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">17:00 前及非管控时段处理方式</div>
+        <div class="setting-hint" id="modeHintText">自由看：不计时、不锁屏，方便大人日常使用电视</div>
+      </div>
+      <div class="setting-ctrl">
+        <div class="seg-ctrl">
+          <div id="segFree" class="seg-opt active" onclick="selectOutsideMode('FREE')">自由看（不影响大人）</div>
+          <div id="segBlock" class="seg-opt" onclick="selectOutsideMode('BLOCK')">严管锁屏（防提前看）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 每日允许时长 -->
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">每日允许观看时长</div>
+        <div class="setting-hint">管控时段内累计亮屏达到此时长后自动停止</div>
+      </div>
+      <div class="setting-ctrl">
+        <span class="preset-tag" onclick="setLimitMin(20)">20分</span>
+        <span class="preset-tag" onclick="setLimitMin(30)">30分</span>
+        <span class="preset-tag" onclick="setLimitMin(45)">45分</span>
+        <span class="preset-tag" onclick="setLimitMin(60)">60分</span>
+        <input type="number" id="cfgLimitNum" class="input-num" min="1" max="720" value="30">
+        <span style="font-size:13px;color:var(--text-sub);">分钟</span>
+      </div>
+    </div>
+
+    <!-- 5. 锁屏后自动黑屏等待秒数 -->
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">锁屏后自动黑屏等待时间</div>
+        <div class="setting-hint">设为 0 则只显示锁屏画面、不黑屏</div>
+      </div>
+      <div class="setting-ctrl">
+        <input type="number" id="cfgAutoOff" class="input-num" min="0" max="300" value="15">
+        <span style="font-size:13px;color:var(--text-sub);">秒</span>
+      </div>
+    </div>
+
+    <!-- 6. 锁屏提示语 -->
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">锁屏提示语</div>
+        <div class="setting-hint">时间到时在电视屏幕中央显示的文字</div>
+      </div>
+      <div class="setting-ctrl">
+        <input type="text" id="cfgMsg" class="input-text" value="今日看电视时间已用完啦，保护眼睛，去休息或看看书吧！">
+      </div>
+    </div>
+
+    <!-- 7. 防卸载保护 -->
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">防卸载保护</div>
+        <div class="setting-hint">儿童管控生效期间拦截打开电视【系统设置】</div>
+      </div>
+      <div class="setting-ctrl">
+        <input type="checkbox" id="cfgProtect" style="width:17px;height:17px;accent-color:var(--primary);" checked>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部极简维护栏 -->
+  <div class="footer">
+    <div>
+      电视地址：<input type="text" id="tvHostInput" class="ip-inline" placeholder="192.168.31.x:8686" onchange="connectTvHost()">
+      · 锁屏页遥控器解锁：上上下下左右
+    </div>
+    <div class="footer-links">
+      <button class="link-btn" onclick="doAction('allow_settings')">放行电视设置5分钟</button>
+      <button class="link-btn" id="btnMasterSwitch" onclick="doAction('toggle_guard')">暂停总开关</button>
+      <button class="link-btn danger" onclick="confirmUninstall()">卸载插件</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast">已保存</div>
+
+<script>
+let formDirty = false;
+let lastState = null;
+let apiBase = '';
+let selectedDays = new Set([1, 2, 3, 4, 5]);
+let selectedOutsideMode = 'FREE';
+
+function initApiBase() {
+  if (location.protocol.startsWith('http') && location.port === '8686') {
+    apiBase = '';
+    document.getElementById('tvHostInput').value = location.host;
+  } else {
+    const saved = localStorage.getItem('mi_tv_guard_host') || '';
+    document.getElementById('tvHostInput').value = saved;
+    apiBase = saved ? ('http://' + saved.replace(/^https?:\/\//, '')) : '';
+  }
+}
+
+function connectTvHost() {
+  let val = document.getElementById('tvHostInput').value.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+  if (!val) return;
+  if (!val.includes(':')) val = val + ':8686';
+  document.getElementById('tvHostInput').value = val;
+  localStorage.setItem('mi_tv_guard_host', val);
+  apiBase = 'http://' + val;
+  formDirty = false;
+  fetchStatus();
+  showToast('已更新连接地址');
+}
+
+function markDirty() {
+  formDirty = true;
+  document.getElementById('btnSaveConfig').textContent = '保存更改 *';
+}
+
+['cfgStart', 'cfgEnd', 'cfgLimitNum', 'cfgMsg', 'cfgAutoOff', 'cfgProtect'].forEach(id => {
+  document.getElementById(id).addEventListener('input', markDirty);
+  document.getElementById(id).addEventListener('change', markDirty);
+});
+
+function toggleDay(d) {
+  if (selectedDays.has(d)) {
+    if (selectedDays.size > 1) selectedDays.delete(d);
+  } else {
+    selectedDays.add(d);
+  }
+  renderDayButtons();
+  markDirty();
+}
+
+function renderDayButtons() {
+  document.querySelectorAll('#daysRow .day-item').forEach(btn => {
+    const d = parseInt(btn.getAttribute('data-day'));
+    btn.classList.toggle('active', selectedDays.has(d));
+  });
+}
+
+function selectOutsideMode(mode) {
+  selectedOutsideMode = mode === 'BLOCK' ? 'BLOCK' : 'FREE';
+  document.getElementById('segFree').classList.toggle('active', selectedOutsideMode === 'FREE');
+  document.getElementById('segBlock').classList.toggle('active', selectedOutsideMode === 'BLOCK');
+  document.getElementById('modeHintText').textContent = selectedOutsideMode === 'FREE'
+    ? '自由看：不计时、不锁屏，方便大人日常使用电视'
+    : '严管锁屏：仅允许在管控时段内看，其余时间开机直接锁屏';
+  markDirty();
+}
+
+function setLimitMin(val) {
+  document.getElementById('cfgLimitNum').value = val;
+  markDirty();
+}
+
+function fmtClock(sec) {
+  sec = Math.max(0, parseInt(sec || 0));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+}
+
+function fmtChinese(sec) {
+  sec = Math.max(0, parseInt(sec || 0));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m + '分' + (s < 10 ? '0' + s : s) + '秒';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+async function fetchStatus() {
+  try {
+    const r = await fetch(apiBase + '/api/status');
+    const d = await r.json();
+    renderStatus(d);
+  } catch (e) {
+    document.getElementById('statusDot').className = 'dot offline';
+    document.getElementById('sceneText').textContent = '暂未连接到电视（电视可能处于关机断电状态）';
+  }
+}
+
+function renderStatus(d) {
+  lastState = d;
+  const dot = document.getElementById('statusDot');
+  const sceneText = document.getElementById('sceneText');
+  const btnAdult = document.getElementById('btnAdultTonight');
+  const headline = document.getElementById('modeHeadline');
+  const subline = document.getElementById('modeSubline');
+
+  document.getElementById('tvScreenState').textContent =
+    `${d.dayOfWeekName || ''} ${d.currentTime.substring(0, 5)} · ${d.screenInteractive ? '电视亮屏中' : '电视待机息屏'}`;
+
+  if (!d.guardEnabled) {
+    dot.className = 'dot offline';
+    sceneText.textContent = '总开关已暂停 · 全天不限制';
+    headline.textContent = '时长守护已暂停';
+    subline.textContent = '当前不会统计时长也不会锁屏';
+    btnAdult.textContent = '恢复儿童守护';
+  } else if (d.adultOverrideToday) {
+    dot.className = 'dot';
+    sceneText.textContent = `今晚大人接管中（不限时，明天 ${d.activeStartTime} 自动恢复儿童守护）`;
+    headline.textContent = '今晚大人接管模式';
+    subline.textContent = '今日已临时免除限制，次日自动恢复儿童放学管控规则';
+    btnAdult.textContent = '结束接管 · 恢复儿童守护';
+  } else if (d.currentlyLocked) {
+    dot.className = 'dot locked';
+    sceneText.textContent = d.forceLocked ? '家长已手动锁屏' : '儿童观看时间已到 · 护眼锁屏中';
+    headline.textContent = '电视已进入护眼锁屏';
+    subline.textContent = '若现在是大人要看电视，请点击右上角「我在看电视」一键解除';
+    btnAdult.textContent = '我在看电视（今晚免限制）';
+  } else if (!d.todayActiveDay) {
+    dot.className = 'dot';
+    sceneText.textContent = `今天是${d.dayOfWeekName || '休息日'} · 未启用儿童限制（全天自由观看）`;
+    headline.textContent = `今日（${d.dayOfWeekName || '非管控日'}）不限时长`;
+    subline.textContent = '今天不在下方勾选的「生效星期」内，全天不计时、不锁屏；如需今日限制可在下方点亮对应星期';
+    btnAdult.textContent = '今日已免除限制';
+  } else if (d.childGuardActiveNow) {
+    dot.className = 'dot';
+    sceneText.textContent = `儿童管控时段生效中 (${d.activeStartTime}~${d.activeEndTime}) · 正在倒计时`;
+    headline.textContent = '儿童管控生效中';
+    subline.textContent = `当前处于儿童管控期，亮屏期间自动扣减今日 ${Math.round(d.totalLimitSecondsToday / 60)} 分钟额度`;
+    btnAdult.textContent = '我在看电视（今晚免限制）';
+  } else {
+    dot.className = 'dot';
+    sceneText.textContent = `当前为自由时段 · 今日 ${d.activeStartTime} 起启动儿童限制`;
+    headline.textContent = `当前不扣额度（${d.activeStartTime} 后生效）`;
+    subline.textContent = `今天是管控日，但目前未到 ${d.activeStartTime}，现在看电视不会扣减下方儿童额度`;
+    btnAdult.textContent = '我在看电视（今晚免限制）';
+  }
+
+  const totalMin = Math.round(d.totalLimitSecondsToday / 60);
+  if (!d.guardEnabled || d.adultOverrideToday || !d.todayActiveDay) {
+    document.getElementById('valRemain').textContent = '不限时';
+    document.getElementById('subRemain').textContent = !d.todayActiveDay
+      ? `今日（${d.dayOfWeekName}）不启用限制`
+      : '当前免除时长限制';
+    document.getElementById('valUsed').textContent = fmtChinese(d.usedSecondsToday);
+    document.getElementById('valTotal').textContent = '无限制';
+    document.getElementById('subTotal').textContent = `管控日默认限额 ${d.dailyLimitMinutes} 分钟`;
+    document.getElementById('progFill').style.width = '0%';
+  } else {
+    document.getElementById('valRemain').textContent = fmtClock(d.remainingSecondsToday);
+    document.getElementById('subRemain').textContent = d.childGuardActiveNow
+      ? '到点自动静音并锁屏'
+      : `${d.activeStartTime} 后开始扣减此额度`;
+    document.getElementById('valUsed').textContent = fmtChinese(d.usedSecondsToday);
+    document.getElementById('valTotal').textContent = `${totalMin} 分钟`;
+    const bonusStr = d.bonusMinutesToday !== 0
+      ? `基础 ${d.dailyLimitMinutes} 分 (今日临时 ${d.bonusMinutesToday > 0 ? '+' : ''}${d.bonusMinutesToday} 分)`
+      : `基础额度 ${d.dailyLimitMinutes} 分钟`;
+    document.getElementById('subTotal').textContent = bonusStr;
+
+    const pct = d.totalLimitSecondsToday > 0
+      ? Math.min(100, Math.round((d.usedSecondsToday * 100) / d.totalLimitSecondsToday))
+      : 100;
+    document.getElementById('progFill').style.width = pct + '%';
+  }
+
+  const btnLock = document.getElementById('btnLockNow');
+  btnLock.textContent = d.forceLocked ? '解除锁屏' : '立即锁屏';
+
+  document.getElementById('btnMasterSwitch').textContent = d.guardEnabled ? '暂停总开关' : '开启总开关';
+
+  if (!formDirty) {
+    if (d.activeDays) {
+      selectedDays = new Set(d.activeDays.split(',').map(x => parseInt(x)).filter(x => !isNaN(x)));
+      renderDayButtons();
+    }
+    document.getElementById('cfgStart').value = d.activeStartTime || '17:00';
+    document.getElementById('cfgEnd').value = d.activeEndTime || '22:30';
+    selectOutsideMode(d.outsideWindowMode || 'FREE');
+    document.getElementById('cfgLimitNum').value = d.dailyLimitMinutes || 30;
+    document.getElementById('cfgAutoOff').value = d.autoOffSeconds !== undefined ? d.autoOffSeconds : 15;
+    document.getElementById('cfgProtect').checked = d.protectSettings !== false;
+    document.getElementById('cfgMsg').value = d.lockMessage || '';
+    document.getElementById('btnSaveConfig').textContent = '保存更改';
+    formDirty = false;
+  }
+}
+
+async function doAction(action, extra = {}) {
+  if (action === 'toggle_adult_tonight' && lastState && !lastState.guardEnabled) {
+    action = 'toggle_guard';
+  }
+  const payload = Object.assign({ action }, extra);
+  try {
+    const r = await fetch(apiBase + '/api/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    renderStatus(d);
+    if (d.message) showToast(d.message.replace(/^[^\w\u4e00-\u9fa5]+/, ''));
+  } catch (e) {
+    showToast('连接电视失败，请确认电视已开机');
+  }
+}
+
+function toggleForceLock() {
+  if (lastState && lastState.forceLocked) doAction('unlock_force');
+  else doAction('lock_now');
+}
+
+async function saveConfig() {
+  const daysCsv = Array.from(selectedDays).sort((a, b) => a - b).join(',');
+  const payload = {
+    activeDays: daysCsv,
+    activeStartTime: document.getElementById('cfgStart').value,
+    activeEndTime: document.getElementById('cfgEnd').value,
+    outsideWindowMode: selectedOutsideMode,
+    dailyLimitMinutes: document.getElementById('cfgLimitNum').value,
+    autoOffSeconds: document.getElementById('cfgAutoOff').value,
+    protectSettings: document.getElementById('cfgProtect').checked,
+    lockMessage: document.getElementById('cfgMsg').value
+  };
+  try {
+    const r = await fetch(apiBase + '/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    formDirty = false;
+    document.getElementById('btnSaveConfig').textContent = '保存更改';
+    renderStatus(d);
+    showToast('设置已保存');
+  } catch (e) {
+    showToast('保存失败，请检查与电视的连接');
+  }
+}
+
+function confirmUninstall() {
+  if (confirm('确定要在小米电视上弹出卸载确认框吗？')) {
+    doAction('uninstall');
+  }
+}
+
+initApiBase();
+fetchStatus();
+setInterval(fetchStatus, 1000);
+</script>
+</body>
+</html>

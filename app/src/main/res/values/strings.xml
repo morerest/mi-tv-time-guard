@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">电视时长守护</string>
+    <string name="accessibility_service_label">电视时长守护服务</string>
+    <string name="accessibility_service_desc">用于统计小米电视每日亮屏观看时长，并在到达设定时长后自动弹出护眼休息锁屏。</string>
+</resources>

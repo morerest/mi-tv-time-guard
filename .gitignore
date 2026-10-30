@@ -1,0 +1,20 @@
+# Android & Build outputs
+build/
+dist/
+app/src/main/assets/
+.gradle/
+local.properties
+
+# Keystores & Signatures (Sensitive)
+*.keystore
+*.jks
+*.idsig
+
+# Local runtime cache
+.last_tv_ip
+
+# macOS & IDE
+.DS_Store
+.idea/
+*.iml
+.vscode/
